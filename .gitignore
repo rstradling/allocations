@@ -1,0 +1,35 @@
+# Rust
+/target/
+/debug/
+/release/
+Cargo.lock
+
+# Neovim
+.nvim/
+*.swp
+*.swo
+*~
+.gdb_history
+.viminfo
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE specific
+.idea/
+.vscode/
+*.iml
+
+# Editor backup files
+*~
+*.backup
+.backup.*
+
+# OS specific
+*.tmp
+*.temp
+
+# Cargo
+.cargo/
+/target

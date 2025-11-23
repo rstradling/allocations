@@ -1,0 +1,36 @@
+FROM rust:1.89-alpine AS builder
+
+# Install git and other build dependencies (if needed)
+RUN apk add --no-cache git openssl-dev
+
+WORKDIR /app
+
+# Copy Cargo.toml and Cargo.lock first to cache dependencies
+COPY Cargo.toml Cargo.lock ./
+
+# Download all dependencies (this will be cached)
+RUN cargo build --release
+
+# Copy the rest of the application code
+COPY . .
+
+# Build the application in release mode
+RUN cargo build --release
+
+# Final stage: minimal runtime image
+FROM alpine:latest
+
+WORKDIR /app
+
+# Copy the built binary from the builder stage
+COPY --from=builder /app/target/release/allocations-rest .
+
+# Expose the application port (adjust as needed)
+EXPOSE 8080
+
+# Set the entrypoint
+ENTRYPOINT ["./allocations-rest"]
+
+# Healthcheck (adjust based on your application's health endpoint)
+HEALTHCHECK CMD wget -q --spider http://localhost:8080/health || exit 1
+

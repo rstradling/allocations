@@ -1,0 +1,21 @@
+[workspace]
+resolver = "3"
+members = ["domain", "repository", "service", "rest"]
+
+[workspace.dependencies]
+anyhow = "1.0.100"
+axum = { version="0.8", features = ["http2", "json", "tokio", "tower-log", "tracing", "form", "query"]}
+derive_more = { version = "2.0", features = ["full"]}
+dotenvy = "0.15"
+serde = {version = "1.0.228", features = ["std", "derive"]}
+serde_json = "1.0"
+sqlx = { version = "0.8", features = ["runtime-tokio", "tls-native-tls", "postgres", "macros", "uuid"]}
+thiserror = "2.0"
+tokio = { version = "1.48.0", features=["full"]}
+tower-http = { version = "0.6", features = ["trace"]}
+tracing = "0.1"
+tracing-subscriber = "0.3"
+uuid = {version = "1.18", features = ["v7", "fast-rng", "serde"]}
+
+[workspace.lints.rust]
+unsafe_code = "forbid"

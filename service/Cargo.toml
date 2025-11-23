@@ -1,0 +1,14 @@
+[package]
+name = "allocations-service"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+allocations-domain = { path = "../domain"}
+allocations-repository = { path = "../repository"}
+serde = { workspace = true }
+thiserror = {workspace = true }
+uuid = {workspace = true }
+
+[lints]
+workspace = true

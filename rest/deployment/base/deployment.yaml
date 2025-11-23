@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: allocations-rest
+  labels:
+    app: allocations-rest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: allocations-rest
+  template:
+    metadata:
+      labels:
+        app: allocations-rest
+    spec:
+      containers:
+        - name: allocations-rest
+          image: allocations/allocations-rest:latest
+          env:
+            - name: SERVER_PORT
+              value: "80"
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
