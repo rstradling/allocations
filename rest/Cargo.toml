@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-allocations-domain = { path = "../domain" }
-allocations-repository = { path = "../repository/" }
-allocations-service = { path = "../service/" }
+domain = { path = "../domain" }
+repository = { path = "../repository/" }
+service = { path = "../service/" }
 anyhow = { workspace = true }
 axum = { workspace = true }
 chrono = "0.4.42"

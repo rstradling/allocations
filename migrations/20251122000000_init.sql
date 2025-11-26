@@ -26,7 +26,7 @@ create table if not exists roster
   first_name text not null,
   last_name text not null,
   email text not null,
-  salary numeric(15, 2) null
+  salary float8 not null
 );
 
 create table if not exists tags

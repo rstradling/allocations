@@ -1,10 +1,10 @@
 [package]
-name = "allocations-repository"
+name = "repository"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-allocations-domain = { path = "../domain"}
+domain = { path = "../domain"}
 serde = { workspace = true }
 sqlx = { workspace = true }
 thiserror = {workspace = true }
