@@ -28,28 +28,54 @@ impl PostgresDb {
         tx.commit().await?;
         Ok((&roster_item).into())
     }
-    /*async fn update(&self, pet: &dao::Pet) -> Result<Pet, sqlx::Error> {
+    pub async fn update_roster(
+        &self,
+        ri: &dao::RosterItem,
+    ) -> Result<dto::RosterItem, sqlx::Error> {
         let mut tx = self.pool.begin().await?;
-        let ret_pet = sqlx::query_as!(
-            dao::Pet,
-            "UPDATE pets SET name = $1 WHERE id = $2 RETURNING *",
-            pet.name,
-            pet.id
+        let ret = sqlx::query_as!(
+            dao::RosterItem,
+            r#"UPDATE roster SET 
+                first_name = $1,
+                last_name = $2,
+                email = $3,
+                salary = $4 
+               WHERE id = $5 RETURNING *"#,
+            ri.first_name,
+            ri.last_name,
+            ri.email,
+            ri.salary,
+            ri.id
         )
         .fetch_one(&mut *tx)
         .await?;
         tx.commit().await?;
-        Ok(ret_pet.into())
+        Ok((&ret).into())
     }
-    async fn get(&self, id: Uuid) -> Result<Option<Pet>, sqlx::Error> {
-        let pet = sqlx::query_as!(
-            pet_share_domain::dao::Pet,
-            "SELECT id, name FROM pets WHERE id=$1",
+    pub async fn delete_roster(&self, id: Uuid) -> Result<(), sqlx::Error> {
+        sqlx::query_as!(dao::RosterItem, "DELETE FROM roster WHERE id=$1", id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+    pub async fn get_roster(&self, id: Uuid) -> Result<Option<dto::RosterItem>, sqlx::Error> {
+        let ri = sqlx::query_as!(
+            dao::RosterItem,
+            "SELECT id, first_name, last_name, email, salary FROM roster where id=$1",
             id
         )
         .fetch_optional(&self.pool)
         .await?;
-        let pet_ret: Option<Pet> = pet.map(|x| x.into());
-        Ok(pet_ret)
-    }*/
+        let ret: Option<dto::RosterItem> = ri.map(|x: dao::RosterItem| (&x).into());
+        Ok(ret)
+    }
+    pub async fn get_whole_roster(&self) -> Result<Vec<dto::RosterItem>, sqlx::Error> {
+        let ris = sqlx::query_as!(
+            dao::RosterItem,
+            "SELECT id, first_name, last_name, email, salary FROM roster",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(ris.into_iter().map(|x| (&x).into()).collect())
+    }
 }

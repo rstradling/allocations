@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+bigdecimal = { workspace = true } 
 serde = { workspace = true }
 # Would like to get rid of this dependency
 sqlx = { workspace = true }

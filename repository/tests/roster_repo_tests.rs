@@ -1,19 +1,20 @@
+use bigdecimal::BigDecimal;
 use domain::dto;
 use repository::dao;
 use repository::postgres_db::PostgresDb;
-use repository::roster_repo;
 use sqlx::PgPool;
+use uuid::Uuid;
 
 #[sqlx::test(migrations = "../migrations")]
 #[ignore = "integration"]
-async fn test_create_pet(pool: PgPool) -> sqlx::Result<()> {
+async fn test_create_roster(pool: PgPool) -> sqlx::Result<()> {
     let repo = PostgresDb::new_with_pool(pool);
     let roster_item = dao::RosterItem {
         id: uuid::Uuid::nil(),
         first_name: "foo".to_string(),
         last_name: "bar".to_string(),
         email: "foo@email.com".to_string(),
-        salary: 1000.00,
+        salary: "1000.00".parse::<BigDecimal>().unwrap(),
     };
     let ret_roster_item =
         repository::postgres_db::PostgresDb::save_roster(&repo, &roster_item).await?;
@@ -22,38 +23,84 @@ async fn test_create_pet(pool: PgPool) -> sqlx::Result<()> {
     assert_eq!(ret_roster_item.first_name, "foo");
     assert_eq!(ret_roster_item.last_name, "bar");
     assert_eq!(ret_roster_item.email, "foo@email.com");
-    assert_eq!(ret_roster_item.salary, 1000.00);
+    assert_eq!(
+        ret_roster_item.salary,
+        "1000.00".parse::<BigDecimal>().unwrap()
+    );
     Ok(())
 }
 
-/*#[sqlx::test(migrations = "../migrations")]
+#[sqlx::test(migrations = "../migrations")]
 #[ignore = "integration"]
-async fn test_crud_pet(pool: PgPool) -> sqlx::Result<()> {
+async fn test_get_whole_roster(pool: PgPool) -> sqlx::Result<()> {
     let repo = PostgresDb::new_with_pool(pool);
-    let pet = Pet {
-        id: None,
-        name: "foo".to_string(),
+    let ri = dao::RosterItem {
+        id: Uuid::nil(),
+        first_name: "run".to_string(),
+        last_name: "away".to_string(),
+        email: "run@away.com".to_string(),
+        salary: "32_000.00".parse::<BigDecimal>().unwrap(),
     };
-    let ret_pet = repo.create_pet(&pet).await.unwrap();
-
-    assert_eq!(ret_pet.name, "foo");
-    assert!(ret_pet.id.is_some());
-
-    let updated_pet = Pet {
-        name: "bar".to_string(),
-        id: ret_pet.id.clone(),
+    let ret_ri = repo.save_roster(&ri).await.unwrap();
+    let ri2 = dao::RosterItem {
+        id: Uuid::nil(),
+        first_name: "foo".to_string(),
+        last_name: "bar".to_string(),
+        email: "this@away.com".to_string(),
+        salary: "30_000.00".parse::<BigDecimal>().unwrap(),
     };
-    let ret2_pet = repo.update_pet(&updated_pet).await.unwrap();
-    assert_eq!(ret2_pet.name, "bar");
-    assert_eq!(ret2_pet.id, ret_pet.id.clone());
+    let ret_ri2 = repo.save_roster(&ri2).await.unwrap();
 
-    let ret3_pet = repo
-        .get_pet(ret_pet.id.clone().unwrap())
-        .await
-        .unwrap()
-        .unwrap();
-    assert_eq!(ret3_pet.name, "bar");
-    assert_eq!(ret3_pet.id, ret_pet.id);
+    let roster_items = repo.get_whole_roster().await?;
+    assert_eq!(roster_items.len(), 2);
+    assert_eq!(roster_items[0], ret_ri);
+    assert_eq!(roster_items[1], ret_ri2);
+    Ok(())
+}
+
+#[sqlx::test(migrations = "../migrations")]
+#[ignore = "integration"]
+async fn test_crud_roster(pool: PgPool) -> sqlx::Result<()> {
+    let repo = PostgresDb::new_with_pool(pool);
+    let ri = dao::RosterItem {
+        id: Uuid::nil(),
+        first_name: "run".to_string(),
+        last_name: "away".to_string(),
+        email: "run@away.com".to_string(),
+        salary: "32_000.00".parse::<BigDecimal>().unwrap(),
+    };
+    let ret_ri = repo.save_roster(&ri).await.unwrap();
+
+    assert_eq!(ret_ri.first_name, "run");
+    assert_eq!(ret_ri.last_name, "away");
+    assert_eq!(ret_ri.email, "run@away.com");
+    assert_eq!(ret_ri.salary, "32_000.00".parse::<BigDecimal>().unwrap());
+    assert_ne!(ret_ri.id, uuid::Uuid::nil());
+
+    let updated_pet = dao::RosterItem {
+        first_name: "bar".to_string(),
+        last_name: "another".to_string(),
+        email: "bar@another.com".to_string(),
+        salary: "45_000.00".parse::<BigDecimal>().unwrap(),
+        id: ret_ri.id,
+    };
+    let ret2_ri = repo.update_roster(&updated_pet).await.unwrap();
+    assert_eq!(ret2_ri.first_name, "bar");
+    assert_eq!(ret2_ri.last_name, "another");
+    assert_eq!(ret2_ri.email, "bar@another.com");
+    assert_eq!(ret2_ri.salary, "45_000.00".parse::<BigDecimal>().unwrap());
+    assert_eq!(ret2_ri.id, ret_ri.id.clone());
+
+    let ret3_ri = repo.get_roster(ret_ri.id).await.unwrap().unwrap();
+    assert_eq!(ret3_ri.first_name, "bar");
+    assert_eq!(ret3_ri.last_name, "another");
+    assert_eq!(ret3_ri.email, "bar@another.com");
+    assert_eq!(ret3_ri.salary, "45_000.00".parse::<BigDecimal>().unwrap());
+    assert_eq!(ret3_ri.id, ret_ri.id.clone());
+
+    repo.delete_roster(ret_ri.id).await?;
+    let ret3_ri = repo.get_roster(ret_ri.id).await.unwrap();
+    assert!(ret3_ri.is_none());
 
     Ok(())
-}*/
+}

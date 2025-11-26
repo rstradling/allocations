@@ -1,12 +1,13 @@
+use sqlx::types::BigDecimal;
 use uuid::Uuid;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RosterItem {
     pub id: Uuid,
     pub first_name: String,
     pub last_name: String,
     pub email: String,
-    pub salary: f64,
+    pub salary: BigDecimal,
 }
 
 #[derive(Debug, Clone)]
