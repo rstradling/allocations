@@ -2,13 +2,14 @@ use bigdecimal::BigDecimal;
 use domain::dto;
 use repository::dao;
 use repository::postgres_db::PostgresDb;
+use repository::roster_repo::RosterRepo;
 use sqlx::PgPool;
 use uuid::Uuid;
 
 #[sqlx::test(migrations = "../migrations")]
 #[ignore = "integration"]
 async fn test_create_roster(pool: PgPool) -> sqlx::Result<()> {
-    let repo = PostgresDb::new_with_pool(pool);
+    let repo: PostgresDb = RosterRepo::new(pool);
     let roster_item = dao::RosterItem {
         id: uuid::Uuid::nil(),
         first_name: "foo".to_string(),
@@ -16,8 +17,7 @@ async fn test_create_roster(pool: PgPool) -> sqlx::Result<()> {
         email: "foo@email.com".to_string(),
         salary: "1000.00".parse::<BigDecimal>().unwrap(),
     };
-    let ret_roster_item =
-        repository::postgres_db::PostgresDb::save_roster(&repo, &roster_item).await?;
+    let ret_roster_item = repo.save(&roster_item).await?;
 
     assert_ne!(ret_roster_item.id, uuid::Uuid::nil());
     assert_eq!(ret_roster_item.first_name, "foo");
@@ -33,7 +33,7 @@ async fn test_create_roster(pool: PgPool) -> sqlx::Result<()> {
 #[sqlx::test(migrations = "../migrations")]
 #[ignore = "integration"]
 async fn test_get_whole_roster(pool: PgPool) -> sqlx::Result<()> {
-    let repo = PostgresDb::new_with_pool(pool);
+    let repo: PostgresDb = RosterRepo::new(pool);
     let ri = dao::RosterItem {
         id: Uuid::nil(),
         first_name: "run".to_string(),
@@ -41,7 +41,7 @@ async fn test_get_whole_roster(pool: PgPool) -> sqlx::Result<()> {
         email: "run@away.com".to_string(),
         salary: "32_000.00".parse::<BigDecimal>().unwrap(),
     };
-    let ret_ri = repo.save_roster(&ri).await.unwrap();
+    let ret_ri = repo.save(&ri).await.unwrap();
     let ri2 = dao::RosterItem {
         id: Uuid::nil(),
         first_name: "foo".to_string(),
@@ -49,9 +49,9 @@ async fn test_get_whole_roster(pool: PgPool) -> sqlx::Result<()> {
         email: "this@away.com".to_string(),
         salary: "30_000.00".parse::<BigDecimal>().unwrap(),
     };
-    let ret_ri2 = repo.save_roster(&ri2).await.unwrap();
+    let ret_ri2 = repo.save(&ri2).await.unwrap();
 
-    let roster_items = repo.get_whole_roster().await?;
+    let roster_items: Vec<dto::RosterItem> = repo.get_all().await?;
     assert_eq!(roster_items.len(), 2);
     assert_eq!(roster_items[0], ret_ri);
     assert_eq!(roster_items[1], ret_ri2);
@@ -61,7 +61,7 @@ async fn test_get_whole_roster(pool: PgPool) -> sqlx::Result<()> {
 #[sqlx::test(migrations = "../migrations")]
 #[ignore = "integration"]
 async fn test_crud_roster(pool: PgPool) -> sqlx::Result<()> {
-    let repo = PostgresDb::new_with_pool(pool);
+    let repo: PostgresDb = RosterRepo::new(pool);
     let ri = dao::RosterItem {
         id: Uuid::nil(),
         first_name: "run".to_string(),
@@ -69,7 +69,7 @@ async fn test_crud_roster(pool: PgPool) -> sqlx::Result<()> {
         email: "run@away.com".to_string(),
         salary: "32_000.00".parse::<BigDecimal>().unwrap(),
     };
-    let ret_ri = repo.save_roster(&ri).await.unwrap();
+    let ret_ri = repo.save(&ri).await.unwrap();
 
     assert_eq!(ret_ri.first_name, "run");
     assert_eq!(ret_ri.last_name, "away");
@@ -84,22 +84,22 @@ async fn test_crud_roster(pool: PgPool) -> sqlx::Result<()> {
         salary: "45_000.00".parse::<BigDecimal>().unwrap(),
         id: ret_ri.id,
     };
-    let ret2_ri = repo.update_roster(&updated_pet).await.unwrap();
+    let ret2_ri = repo.update(&updated_pet).await.unwrap();
     assert_eq!(ret2_ri.first_name, "bar");
     assert_eq!(ret2_ri.last_name, "another");
     assert_eq!(ret2_ri.email, "bar@another.com");
     assert_eq!(ret2_ri.salary, "45_000.00".parse::<BigDecimal>().unwrap());
     assert_eq!(ret2_ri.id, ret_ri.id.clone());
 
-    let ret3_ri = repo.get_roster(ret_ri.id).await.unwrap().unwrap();
+    let ret3_ri: dto::RosterItem = repo.get(ret_ri.id).await.unwrap().unwrap();
     assert_eq!(ret3_ri.first_name, "bar");
     assert_eq!(ret3_ri.last_name, "another");
     assert_eq!(ret3_ri.email, "bar@another.com");
     assert_eq!(ret3_ri.salary, "45_000.00".parse::<BigDecimal>().unwrap());
     assert_eq!(ret3_ri.id, ret_ri.id.clone());
 
-    repo.delete_roster(ret_ri.id).await?;
-    let ret3_ri = repo.get_roster(ret_ri.id).await.unwrap();
+    repo.delete(ret_ri.id).await?;
+    let ret3_ri = repo.get(ret_ri.id).await.unwrap();
     assert!(ret3_ri.is_none());
 
     Ok(())

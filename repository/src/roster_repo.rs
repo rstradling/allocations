@@ -1,19 +1,65 @@
-use crate::converters;
 use crate::dao;
 use crate::postgres_db::PostgresDb;
 use domain::dto;
 use sqlx::PgPool;
+use std::future::Future;
+use thiserror::Error;
 use uuid::Uuid;
 
-impl PostgresDb {
-    pub async fn new(url: &str) -> Result<PostgresDb, sqlx::Error> {
-        let pool = PgPool::connect(url).await?;
-        Ok(PostgresDb { pool })
+#[derive(Debug, Error)]
+pub enum RosterItemError {
+    #[error("Failed to save roster_item with id {id}: {source}")]
+    SaveFailed { id: Uuid, source: sqlx::Error },
+
+    #[error("Duplicate pet with the same id: {id}: {source}")]
+    Duplicate { id: Uuid, source: sqlx::Error },
+
+    #[error("Failed to commit transactions: {source}")]
+    CommitFailed { source: sqlx::Error },
+
+    #[error("Unknown error for roster_item with id {id}: {source}")]
+    Unknown { id: Uuid, source: sqlx::Error },
+
+    #[error(transparent)]
+    Sqlx(#[from] sqlx::Error),
+}
+
+impl From<RosterItemError> for sqlx::Error {
+    fn from(error: RosterItemError) -> Self {
+        match error {
+            RosterItemError::SaveFailed { id: _, source } => source,
+            RosterItemError::Duplicate { id: _, source } => source,
+            RosterItemError::CommitFailed { source } => source,
+            RosterItemError::Unknown { id: _, source } => source,
+            RosterItemError::Sqlx(source) => source,
+        }
     }
-    pub fn new_with_pool(pool: PgPool) -> PostgresDb {
+}
+
+pub trait RosterRepo: Send + Sync + Clone + 'static {
+    fn new(pool: PgPool) -> Self;
+    fn save(
+        &self,
+        ri: &dao::RosterItem,
+    ) -> impl Future<Output = Result<dto::RosterItem, RosterItemError>> + Send;
+    fn get(
+        &self,
+        pet_id: Uuid,
+    ) -> impl Future<Output = Result<Option<dto::RosterItem>, RosterItemError>> + Send;
+    fn delete(&self, pet_id: Uuid) -> impl Future<Output = Result<(), RosterItemError>> + Send;
+    fn update(
+        &self,
+        ri: &dao::RosterItem,
+    ) -> impl Future<Output = Result<dto::RosterItem, RosterItemError>> + Send;
+    fn get_all(&self)
+    -> impl Future<Output = Result<Vec<dto::RosterItem>, RosterItemError>> + Send;
+}
+
+impl RosterRepo for PostgresDb {
+    fn new(pool: PgPool) -> PostgresDb {
         PostgresDb { pool }
     }
-    pub async fn save_roster(&self, ri: &dao::RosterItem) -> Result<dto::RosterItem, sqlx::Error> {
+    async fn save(&self, ri: &dao::RosterItem) -> Result<dto::RosterItem, RosterItemError> {
         let mut tx = self.pool.begin().await?;
         let roster_item: dao::RosterItem = sqlx::query_as!(
             dao::RosterItem,
@@ -28,10 +74,7 @@ impl PostgresDb {
         tx.commit().await?;
         Ok((&roster_item).into())
     }
-    pub async fn update_roster(
-        &self,
-        ri: &dao::RosterItem,
-    ) -> Result<dto::RosterItem, sqlx::Error> {
+    async fn update(&self, ri: &dao::RosterItem) -> Result<dto::RosterItem, RosterItemError> {
         let mut tx = self.pool.begin().await?;
         let ret = sqlx::query_as!(
             dao::RosterItem,
@@ -52,13 +95,13 @@ impl PostgresDb {
         tx.commit().await?;
         Ok((&ret).into())
     }
-    pub async fn delete_roster(&self, id: Uuid) -> Result<(), sqlx::Error> {
+    async fn delete(&self, id: Uuid) -> Result<(), RosterItemError> {
         sqlx::query_as!(dao::RosterItem, "DELETE FROM roster WHERE id=$1", id)
             .execute(&self.pool)
             .await?;
         Ok(())
     }
-    pub async fn get_roster(&self, id: Uuid) -> Result<Option<dto::RosterItem>, sqlx::Error> {
+    async fn get(&self, id: Uuid) -> Result<Option<dto::RosterItem>, RosterItemError> {
         let ri = sqlx::query_as!(
             dao::RosterItem,
             "SELECT id, first_name, last_name, email, salary FROM roster where id=$1",
@@ -69,7 +112,7 @@ impl PostgresDb {
         let ret: Option<dto::RosterItem> = ri.map(|x: dao::RosterItem| (&x).into());
         Ok(ret)
     }
-    pub async fn get_whole_roster(&self) -> Result<Vec<dto::RosterItem>, sqlx::Error> {
+    async fn get_all(&self) -> Result<Vec<dto::RosterItem>, RosterItemError> {
         let ris = sqlx::query_as!(
             dao::RosterItem,
             "SELECT id, first_name, last_name, email, salary FROM roster",
