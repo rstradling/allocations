@@ -8,8 +8,8 @@ use uuid::Uuid;
 
 #[derive(Debug, Error)]
 pub enum RosterItemError {
-    #[error("Failed to save roster_item with id {id}: {source}")]
-    SaveFailed { id: Uuid, source: sqlx::Error },
+    #[error("Failed to create roster_item with id {id}: {source}")]
+    CreateFailed { id: Uuid, source: sqlx::Error },
 
     #[error("Duplicate pet with the same id: {id}: {source}")]
     Duplicate { id: Uuid, source: sqlx::Error },
@@ -27,7 +27,7 @@ pub enum RosterItemError {
 impl From<RosterItemError> for sqlx::Error {
     fn from(error: RosterItemError) -> Self {
         match error {
-            RosterItemError::SaveFailed { id: _, source } => source,
+            RosterItemError::CreateFailed { id: _, source } => source,
             RosterItemError::Duplicate { id: _, source } => source,
             RosterItemError::CommitFailed { source } => source,
             RosterItemError::Unknown { id: _, source } => source,
@@ -38,9 +38,9 @@ impl From<RosterItemError> for sqlx::Error {
 
 pub trait RosterRepo: Send + Sync + Clone + 'static {
     fn new(pool: PgPool) -> Self;
-    fn save(
+    fn create(
         &self,
-        ri: &dao::RosterItem,
+        ri: &dto::RosterItem,
     ) -> impl Future<Output = Result<dto::RosterItem, RosterItemError>> + Send;
     fn get(
         &self,
@@ -49,7 +49,7 @@ pub trait RosterRepo: Send + Sync + Clone + 'static {
     fn delete(&self, pet_id: Uuid) -> impl Future<Output = Result<(), RosterItemError>> + Send;
     fn update(
         &self,
-        ri: &dao::RosterItem,
+        ri: &dto::RosterItem,
     ) -> impl Future<Output = Result<dto::RosterItem, RosterItemError>> + Send;
     fn get_all(&self)
     -> impl Future<Output = Result<Vec<dto::RosterItem>, RosterItemError>> + Send;
@@ -59,7 +59,7 @@ impl RosterRepo for PostgresDb {
     fn new(pool: PgPool) -> PostgresDb {
         PostgresDb { pool }
     }
-    async fn save(&self, ri: &dao::RosterItem) -> Result<dto::RosterItem, RosterItemError> {
+    async fn create(&self, ri: &dto::RosterItem) -> Result<dto::RosterItem, RosterItemError> {
         let mut tx = self.pool.begin().await?;
         let roster_item: dao::RosterItem = sqlx::query_as!(
             dao::RosterItem,
@@ -74,7 +74,7 @@ impl RosterRepo for PostgresDb {
         tx.commit().await?;
         Ok((&roster_item).into())
     }
-    async fn update(&self, ri: &dao::RosterItem) -> Result<dto::RosterItem, RosterItemError> {
+    async fn update(&self, ri: &dto::RosterItem) -> Result<dto::RosterItem, RosterItemError> {
         let mut tx = self.pool.begin().await?;
         let ret = sqlx::query_as!(
             dao::RosterItem,

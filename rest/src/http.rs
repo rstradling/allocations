@@ -4,18 +4,23 @@
 */
 
 mod api;
+mod roster_handlers;
 use std::sync::Arc;
 
+use crate::http::roster_handlers::{create_roster_item, get_roster_item, update_roster_item};
 use anyhow::Context;
-use axum::routing::get;
+use axum::Router;
+use axum::routing::{get, post, put};
+use repository::postgres_db::PostgresDb;
+use repository::roster_repo::RosterRepo;
 use serde_json::json;
+use sqlx::PgPool;
 use tokio::net;
 
-trait DummyService {}
 #[derive(Debug, Clone)]
 /// The global application state shared between all request handlers.
-pub struct AppState<DS: DummyService> {
-    dummy_service: Arc<DS>,
+pub struct AppState<Repo: RosterRepo> {
+    roster_repo: Arc<Repo>,
 }
 
 /// Configuration for the HTTP server.
@@ -40,7 +45,7 @@ async fn health_check() -> axum::Json<serde_json::Value> {
 
 impl HttpServer {
     /// Returns a new HTTP server bound to the port specified in `config`.
-    pub async fn new(config: HttpServerConfig<'_>) -> anyhow::Result<Self> {
+    pub async fn new(pool: PgPool, config: HttpServerConfig<'_>) -> anyhow::Result<Self> {
         let trace_layer = tower_http::trace::TraceLayer::new_for_http().make_span_with(
             |request: &axum::extract::Request<_>| {
                 let uri = request.uri().to_string();
@@ -48,16 +53,17 @@ impl HttpServer {
             },
         );
 
+        let roster_repo = <PostgresDb as RosterRepo>::new(pool);
         // Construct dependencies to inject into handlers.
-        //let state = AppState {
-        //    pet_service: Arc::new(svc),
-        //};
+        let state = AppState {
+            roster_repo: Arc::new(roster_repo),
+        };
 
         let router = axum::Router::new()
             .route("/health", get(health_check))
-            //.nest("/api", api_routes())
-            .layer(trace_layer);
-        //   .with_state(state);
+            .nest("/api/roster", roster_routes())
+            .layer(trace_layer)
+            .with_state(state);
 
         let listener = net::TcpListener::bind(format!("0.0.0.0:{}", config.port))
             .await
@@ -76,10 +82,11 @@ impl HttpServer {
     }
 }
 
-/*fn api_routes<DS: DummyService>() -> Router<AppState<DS>> {
+fn roster_routes<RR: RosterRepo>() -> Router<AppState<RR>> {
     Router::new()
-        .route("/pets", post(create_pet::<PS>))
-        .route("/pets", post(create_pet::<PS>))
-        .route("/pets/{id}", get(get_pet::<PS>))
-        .route("/pets/{id}", put(update_pet::<PS>))
-}*/
+        .route("/", post(create_roster_item::<RR>))
+        .route("/{id}", get(get_roster_item::<RR>))
+        .route("/{id}", put(update_roster_item::<RR>))
+    /*.route("/roster/{id}", delete(delete_roster_item::<RR>))
+    .route("/roster", get(get_all_roster_items::<RR>))*/
+}

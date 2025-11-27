@@ -1,6 +1,5 @@
 use bigdecimal::BigDecimal;
 use domain::dto;
-use repository::dao;
 use repository::postgres_db::PostgresDb;
 use repository::roster_repo::RosterRepo;
 use sqlx::PgPool;
@@ -10,14 +9,14 @@ use uuid::Uuid;
 #[ignore = "integration"]
 async fn test_create_roster(pool: PgPool) -> sqlx::Result<()> {
     let repo: PostgresDb = RosterRepo::new(pool);
-    let roster_item = dao::RosterItem {
+    let roster_item = dto::RosterItem {
         id: uuid::Uuid::nil(),
         first_name: "foo".to_string(),
         last_name: "bar".to_string(),
         email: "foo@email.com".to_string(),
         salary: "1000.00".parse::<BigDecimal>().unwrap(),
     };
-    let ret_roster_item = repo.save(&roster_item).await?;
+    let ret_roster_item = repo.create(&roster_item).await?;
 
     assert_ne!(ret_roster_item.id, uuid::Uuid::nil());
     assert_eq!(ret_roster_item.first_name, "foo");
@@ -34,22 +33,22 @@ async fn test_create_roster(pool: PgPool) -> sqlx::Result<()> {
 #[ignore = "integration"]
 async fn test_get_whole_roster(pool: PgPool) -> sqlx::Result<()> {
     let repo: PostgresDb = RosterRepo::new(pool);
-    let ri = dao::RosterItem {
+    let ri = dto::RosterItem {
         id: Uuid::nil(),
         first_name: "run".to_string(),
         last_name: "away".to_string(),
         email: "run@away.com".to_string(),
         salary: "32_000.00".parse::<BigDecimal>().unwrap(),
     };
-    let ret_ri = repo.save(&ri).await.unwrap();
-    let ri2 = dao::RosterItem {
+    let ret_ri = repo.create(&ri).await.unwrap();
+    let ri2 = dto::RosterItem {
         id: Uuid::nil(),
         first_name: "foo".to_string(),
         last_name: "bar".to_string(),
         email: "this@away.com".to_string(),
         salary: "30_000.00".parse::<BigDecimal>().unwrap(),
     };
-    let ret_ri2 = repo.save(&ri2).await.unwrap();
+    let ret_ri2 = repo.create(&ri2).await.unwrap();
 
     let roster_items: Vec<dto::RosterItem> = repo.get_all().await?;
     assert_eq!(roster_items.len(), 2);
@@ -62,14 +61,14 @@ async fn test_get_whole_roster(pool: PgPool) -> sqlx::Result<()> {
 #[ignore = "integration"]
 async fn test_crud_roster(pool: PgPool) -> sqlx::Result<()> {
     let repo: PostgresDb = RosterRepo::new(pool);
-    let ri = dao::RosterItem {
+    let ri = dto::RosterItem {
         id: Uuid::nil(),
         first_name: "run".to_string(),
         last_name: "away".to_string(),
         email: "run@away.com".to_string(),
         salary: "32_000.00".parse::<BigDecimal>().unwrap(),
     };
-    let ret_ri = repo.save(&ri).await.unwrap();
+    let ret_ri = repo.create(&ri).await.unwrap();
 
     assert_eq!(ret_ri.first_name, "run");
     assert_eq!(ret_ri.last_name, "away");
@@ -77,7 +76,7 @@ async fn test_crud_roster(pool: PgPool) -> sqlx::Result<()> {
     assert_eq!(ret_ri.salary, "32_000.00".parse::<BigDecimal>().unwrap());
     assert_ne!(ret_ri.id, uuid::Uuid::nil());
 
-    let updated_pet = dao::RosterItem {
+    let updated_pet = dto::RosterItem {
         first_name: "bar".to_string(),
         last_name: "another".to_string(),
         email: "bar@another.com".to_string(),

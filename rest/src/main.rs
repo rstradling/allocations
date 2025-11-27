@@ -1,5 +1,6 @@
 mod http;
 use crate::http::{HttpServer, HttpServerConfig};
+use repository::postgres_db::PostgresDb;
 use std::env;
 use thiserror::Error;
 
@@ -46,6 +47,9 @@ async fn main() -> anyhow::Result<()> {
     let server_config = HttpServerConfig {
         port: &config.server_port,
     };
-    let http_server = HttpServer::new(server_config).await?;
+
+    let pool = PostgresDb::create_db_pool(&config.database_url).await?;
+
+    let http_server = HttpServer::new(pool, server_config).await?;
     http_server.run().await
 }

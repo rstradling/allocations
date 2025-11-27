@@ -5,7 +5,7 @@ members = ["domain", "repository", "service", "rest"]
 [workspace.dependencies]
 anyhow = "1.0.100"
 axum = { version="0.8", features = ["http2", "json", "tokio", "tower-log", "tracing", "form", "query"]}
-bigdecimal = "0.4"
+bigdecimal = { version = "0.4", features = ["serde-json"] }
 derive_more = { version = "2.0", features = ["full"]}
 dotenvy = "0.15"
 serde = {version = "1.0.228", features = ["std", "derive"]}
