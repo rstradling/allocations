@@ -12,12 +12,15 @@ create table if not exists users
   id uuid default uuidv7() primary key,
   first_name text not null,
   last_name text not null,
-  email_address text not null,
+  email text not null,
   external_id text not null,
   external_id_source text not null,
   role_id uuid references roles(id) on delete set null,
   created_at timestamp default CURRENT_TIMESTAMP,
-  updated_at timestamp default CURRENT_TIMESTAMP
+  updated_at timestamp default CURRENT_TIMESTAMP,
+
+  CONSTRAINT uk_users_email UNIQUE (email)
+
 );
 
 create table if not exists employees 
@@ -26,7 +29,9 @@ create table if not exists employees
   first_name text not null,
   last_name text not null,
   email text not null,
-  salary numeric(15, 2) not null
+  salary numeric(15, 2) not null,
+
+  CONSTRAINT uk_employees_email UNIQUE (email)
 );
 
 create table if not exists tags
