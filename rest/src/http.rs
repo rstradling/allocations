@@ -4,23 +4,25 @@
 */
 
 mod api;
-mod roster_handlers;
+mod employee_handlers;
 use std::sync::Arc;
 
-use crate::http::roster_handlers::{create_roster_item, get_roster_item, update_roster_item};
+use crate::http::employee_handlers::{
+    create_employee, delete_employee, get_employee, get_employees, update_employee,
+};
 use anyhow::Context;
 use axum::Router;
-use axum::routing::{get, post, put};
+use axum::routing::{delete, get, post, put};
+use repository::employee_repo::EmployeeRepo;
 use repository::postgres_db::PostgresDb;
-use repository::roster_repo::RosterRepo;
 use serde_json::json;
 use sqlx::PgPool;
 use tokio::net;
 
 #[derive(Debug, Clone)]
 /// The global application state shared between all request handlers.
-pub struct AppState<Repo: RosterRepo> {
-    roster_repo: Arc<Repo>,
+pub struct AppState<Repo: EmployeeRepo> {
+    employee_repo: Arc<Repo>,
 }
 
 /// Configuration for the HTTP server.
@@ -53,15 +55,15 @@ impl HttpServer {
             },
         );
 
-        let roster_repo = <PostgresDb as RosterRepo>::new(pool);
+        let employee_repo = <PostgresDb as EmployeeRepo>::new(pool);
         // Construct dependencies to inject into handlers.
         let state = AppState {
-            roster_repo: Arc::new(roster_repo),
+            employee_repo: Arc::new(employee_repo),
         };
 
         let router = axum::Router::new()
             .route("/health", get(health_check))
-            .nest("/api/roster", roster_routes())
+            .nest("/api/employees", employee_routes())
             .layer(trace_layer)
             .with_state(state);
 
@@ -82,11 +84,11 @@ impl HttpServer {
     }
 }
 
-fn roster_routes<RR: RosterRepo>() -> Router<AppState<RR>> {
+fn employee_routes<RR: EmployeeRepo>() -> Router<AppState<RR>> {
     Router::new()
-        .route("/", post(create_roster_item::<RR>))
-        .route("/{id}", get(get_roster_item::<RR>))
-        .route("/{id}", put(update_roster_item::<RR>))
-    /*.route("/roster/{id}", delete(delete_roster_item::<RR>))
-    .route("/roster", get(get_all_roster_items::<RR>))*/
+        .route("/", post(create_employee::<RR>))
+        .route("/{id}", get(get_employee::<RR>))
+        .route("/{id}", put(update_employee::<RR>))
+        .route("/{id}", delete(delete_employee::<RR>))
+        .route("/", get(get_employees::<RR>))
 }

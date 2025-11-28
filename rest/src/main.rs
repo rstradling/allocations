@@ -1,4 +1,5 @@
 mod http;
+mod models;
 use crate::http::{HttpServer, HttpServerConfig};
 use repository::postgres_db::PostgresDb;
 use std::env;

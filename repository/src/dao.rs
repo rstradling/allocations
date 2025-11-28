@@ -2,7 +2,7 @@ use sqlx::{FromRow, types::BigDecimal};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, FromRow)]
-pub struct RosterItem {
+pub struct Employee {
     pub id: Uuid,
     pub first_name: String,
     pub last_name: String,
@@ -41,9 +41,9 @@ pub(crate) struct Assignment {
 }
 
 #[derive(Debug, Clone, FromRow)]
-pub(crate) struct RosterAssignment {
+pub(crate) struct EmployeeAssignment {
     pub id: Uuid,
-    pub roster_id: Uuid,
+    pub employee_id: Uuid,
     pub assignment_id: Uuid,
     pub allocation: f64,
     pub initiative_id: Uuid,
@@ -57,8 +57,8 @@ pub(crate) struct AssignmentTag {
 }
 
 #[derive(Debug, Clone, FromRow)]
-pub(crate) struct RosterAssignmentTag {
+pub(crate) struct EmployeeAssignmentTag {
     pub id: Uuid,
-    pub roster_assignment_id: Uuid,
+    pub employee_assignment_id: Uuid,
     pub tag_id: Uuid,
 }

@@ -1,6 +1,7 @@
 use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use repository::employee_repo::EmployeeError;
 use serde::Serialize;
 
 #[derive(Debug, Clone)]
@@ -102,4 +103,37 @@ impl ApiResponseBody<ApiErrorData> {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ApiErrorData {
     pub message: String,
+}
+
+impl From<uuid::Error> for ApiError {
+    fn from(error: uuid::Error) -> Self {
+        ApiError::NotFound(format!("Invalid UUID: {}", error))
+    }
+}
+
+impl From<EmployeeError> for ApiError {
+    fn from(e: EmployeeError) -> Self {
+        match e {
+            EmployeeError::CreateFailed { id, source } => Self::UnprocessableEntity(format!(
+                "employee with id {} already exists from source {}",
+                id, source
+            )),
+            EmployeeError::Duplicate { id, source } => Self::InternalServerError(format!(
+                "Duplicate error updating or creating a employee {} from source {}",
+                id, source
+            )),
+            EmployeeError::Unknown { id, source } => Self::InternalServerError(format!(
+                "Unable to process employee with id {} from source {}",
+                id, source
+            )),
+            EmployeeError::CommitFailed { source } => Self::InternalServerError(format!(
+                "CommitFailed for creating a employee at {}",
+                source
+            )),
+            EmployeeError::Sqlx(source) => Self::InternalServerError(format!(
+                "Sqlx error for creating a employee at {}",
+                source
+            )),
+        }
+    }
 }

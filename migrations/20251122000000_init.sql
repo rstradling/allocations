@@ -20,7 +20,7 @@ create table if not exists users
   updated_at timestamp default CURRENT_TIMESTAMP
 );
 
-create table if not exists roster
+create table if not exists employees 
 (
   id uuid default uuidv7() primary key,
   first_name text not null,
@@ -60,16 +60,16 @@ create table if not exists assignments
   "dec" numeric(3, 2) null
 );
 
-CREATE table if not exists roster_assignments
+CREATE table if not exists employee_assignments
 (
   id uuid DEFAULT uuidv7() PRIMARY KEY,
-  roster_id uuid NOT NULL REFERENCES roster(id) ON DELETE CASCADE,
+  employee_id uuid NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
   assignment_id uuid NOT NULL REFERENCES assignments(id) ON DELETE CASCADE,
   allocation numeric(3, 2) NOT NULL CHECK (allocation >= 0 AND allocation <= 1),
   initiative_id uuid NOT NULL REFERENCES initiatives(id) ON DELETE CASCADE,
   
   -- Ensure a person can't be associated with the same initiative more than once
-  UNIQUE (roster_id, initiative_id),
+  UNIQUE (employee_id, initiative_id),
   
   -- Ensure allocation is valid
   CHECK (allocation >= 0 AND allocation <= 1)
@@ -86,14 +86,14 @@ create table if not exists assignment_tags
   UNIQUE (assignment_id, tag_id)
 );
 
--- Junction table to connect roster assignments to tags
-create table if not exists roster_assignment_tags
+-- Junction table to connect employee assignments to tags
+create table if not exists employee_assignment_tags
 (
   id uuid DEFAULT uuidv7() PRIMARY KEY,
-  roster_assignment_id uuid NOT NULL REFERENCES roster_assignments(id) ON DELETE CASCADE,
+  employee_assignment_id uuid NOT NULL REFERENCES employee_assignments(id) ON DELETE CASCADE,
   tag_id uuid NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
   
-  -- Ensure unique combination of roster assignment and tag
-  UNIQUE (roster_assignment_id, tag_id)
+  -- Ensure unique combination of employee assignment and tag
+  UNIQUE (employee_assignment_id, tag_id)
 );
 
