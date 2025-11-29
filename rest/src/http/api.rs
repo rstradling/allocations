@@ -1,7 +1,7 @@
 use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use repository::employee_repo::EmployeeError;
+use repository::employee_errors::*;
 use serde::Serialize;
 
 #[derive(Debug, Clone)]
@@ -57,7 +57,7 @@ impl IntoResponse for ApiError {
                     StatusCode::INTERNAL_SERVER_ERROR,
                     Json(ApiResponseBody::new_error(
                         StatusCode::INTERNAL_SERVER_ERROR,
-                        "Internal server error".to_string(),
+                        e.to_string(),
                     )),
                 )
                     .into_response()
@@ -111,27 +111,71 @@ impl From<uuid::Error> for ApiError {
     }
 }
 
-impl From<EmployeeError> for ApiError {
-    fn from(e: EmployeeError) -> Self {
+impl From<CreateEmployeeError> for ApiError {
+    fn from(e: CreateEmployeeError) -> Self {
         match e {
-            EmployeeError::CreateFailed { id, source } => Self::UnprocessableEntity(format!(
+            CreateEmployeeError::CreateFailed { id, source } => Self::UnprocessableEntity(format!(
                 "employee with id {} already exists from source {}",
                 id, source
             )),
-            EmployeeError::Duplicate { id, source } => Self::InternalServerError(format!(
+            CreateEmployeeError::Duplicate { id, source } => Self::InternalServerError(format!(
                 "Duplicate error updating or creating a employee {} from source {}",
                 id, source
             )),
-            EmployeeError::Unknown { id, source } => Self::InternalServerError(format!(
-                "Unable to process employee with id {} from source {}",
-                id, source
+            CreateEmployeeError::Unknown { source } => Self::InternalServerError(format!(
+                "Unable to process employee from source {}",
+                source
             )),
-            EmployeeError::CommitFailed { source } => Self::InternalServerError(format!(
+            CreateEmployeeError::CommitFailed { source } => Self::InternalServerError(format!(
                 "CommitFailed for creating a employee at {}",
                 source
             )),
-            EmployeeError::Sqlx(source) => Self::InternalServerError(format!(
-                "Sqlx error for creating a employee at {}",
+        }
+    }
+}
+
+impl From<UpdateEmployeeError> for ApiError {
+    fn from(e: UpdateEmployeeError) -> Self {
+        match e {
+            UpdateEmployeeError::Unknown { source } => Self::InternalServerError(format!(
+                "Unable to process employee from source {}",
+                source
+            )),
+            UpdateEmployeeError::CommitFailed { source } => Self::InternalServerError(format!(
+                "CommitFailed for creating a employee at {}",
+                source
+            )),
+        }
+    }
+}
+
+impl From<DeleteEmployeeError> for ApiError {
+    fn from(e: DeleteEmployeeError) -> Self {
+        match e {
+            DeleteEmployeeError::Unknown { source } => Self::InternalServerError(format!(
+                "Unable to process employee from source {}",
+                source
+            )),
+        }
+    }
+}
+
+impl From<GetEmployeeError> for ApiError {
+    fn from(e: GetEmployeeError) -> Self {
+        match e {
+            GetEmployeeError::Unknown { source } => Self::InternalServerError(format!(
+                "Unable to process employee from source {}",
+                source
+            )),
+        }
+    }
+}
+
+impl From<GetEmployeesError> for ApiError {
+    fn from(e: GetEmployeesError) -> Self {
+        match e {
+            GetEmployeesError::Unknown { source } => Self::InternalServerError(format!(
+                "Unable to process employee from source {}",
                 source
             )),
         }
